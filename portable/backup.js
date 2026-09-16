@@ -1,0 +1,13 @@
+import {readState,transact} from '../src/lib/data.js';
+import {download} from '../src/lib/files.js';
+import {makeBackup,validateBackup} from './backup-core.js';
+const $=id=>document.getElementById(id),message=text=>{$('message').textContent=text};
+let selected=null;
+const prefs=()=>Object.fromEntries(['wms38-account','wms38-test-dataset'].map(key=>[key,localStorage.getItem(key)]));
+async function authorized(){const r=await fetch('/auth/session',{cache:'no-store'});if(!r.ok){location.replace('/login');throw Error('Masuk kembali untuk melanjutkan.')}}
+async function exportState(state,prefix='wms38-cadangan'){const backup=await makeBackup(state,prefs());download(`${prefix}-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,JSON.stringify(backup,null,2),'application/json');}
+try{await authorized();$('export').disabled=false;$('file').disabled=false;message('Siap. Cadangan berisi data dari browser lokal ini.')}catch{message('Server lokal belum terhubung. Jalankan MULAI-WMS.bat, lalu muat ulang.')}
+$('export').onclick=async()=>{try{await authorized();await exportState(await readState());message('Cadangan telah diunduh. Simpan file tersebut di tempat yang mudah ditemukan.')}catch(e){message(e.message)}};
+const update=()=>{$('restore').disabled=!selected||!$('confirm').checked};$('confirm').onchange=update;
+$('file').onchange=async()=>{selected=null;update();$('summary').textContent='';try{const file=$('file').files[0];if(!file)return;if(file.size>50*1024*1024)throw Error('Ukuran cadangan maksimal 50 MB.');selected=await validateBackup(JSON.parse(await file.text()));$('summary').textContent=`${selected.state.items.length} SKU · ${selected.state.movements.length} pergerakan stok · ${selected.state.kolis.length} koli\nTerakhir disimpan: ${selected.state.lastSaved||'—'}`;message('File cadangan valid. Periksa isinya sebelum memulihkan.');update()}catch(e){message(e.message)}};
+$('restore').onclick=async()=>{if(!selected||!$('confirm').checked)return;$('restore').disabled=true;try{await authorized();const old=await readState();await exportState(old,'wms38-sebelum-pemulihan');const candidate=structuredClone(selected.state);await transact(d=>{if(d.revision!==old.revision)throw Error('Ada transaksi baru dari tab lain. Tutup tab lain lalu ulangi pemulihan.');for(const key of Object.keys(d))delete d[key];Object.assign(d,candidate);});for(const key of ['wms38-account','wms38-test-dataset'])if(typeof selected.preferences[key]==='string')localStorage.setItem(key,selected.preferences[key]);localStorage.setItem('wms38-account','USER-ADMIN');message('Data berhasil dipulihkan. Membuka WMS…');location.replace('/')}catch(e){message(e.message);update()}};

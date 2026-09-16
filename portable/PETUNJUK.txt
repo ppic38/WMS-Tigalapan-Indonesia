@@ -1,0 +1,342 @@
+PEMBARUAN V11: FORMAT RESI + HPP/ITEM
+Pembaruan dari V10 mempertahankan seluruh kemajuan testing.
+File resi menerima kolom hpp/item (IDR/pcs). Nilai tidak tampil pada
+layar proses warehouse, tetapi tersimpan dalam data dan cadangan WMS.
+Tulis angka tanpa pemisah ribuan, misalnya 30000 atau 30000.50.
+Kosong berarti belum tersedia. Koneksi API Moka belum diaktifkan.
+
+WMS 38 TIGALAPAN — PAKET KOMPUTER WINDOWS
+
+PEMBARUAN V10 — RESET TESTING BARU
+Sesuai permintaan, stok, transaksi, kereta aktif, riwayat, dan layout lama
+dibersihkan satu kali saat versi V10 pertama dibuka. Master contoh lengkap
+disiapkan kembali. Mulai dari Receiving; refresh selanjutnya tidak mereset.
+
+CARA MEMULAI
+1. Klik kanan ZIP, pilih Extract All / Ekstrak Semua.
+2. Simpan folder WMS38-Komputer di tempat tetap, misalnya D:\WMS38.
+3. Buka MULAI-WMS.bat. Jendela WMS akan tetap terbuka dan browser akan terbuka otomatis.
+4. Jika browser belum terbuka, ketik http://localhost:8765 pada Chrome / Edge.
+5. Masuk dengan PIN awal 60623560.
+6. Biarkan jendela WMS yang berwarna hitam tetap terbuka selama bekerja.
+
+Tidak perlu login GPT, tidak perlu memasang Node.js, tidak perlu npm install.
+Komponen Node.js Windows 64-bit sudah disertakan. Setelah ZIP diunduh,
+operasional lokal tidak memerlukan internet. Gunakan Windows 10/11 64-bit
+Intel/AMD dan Chrome atau Edge. Windows ARM dan macOS tidak termasuk paket ini.
+Jangan membuka file app langsung atau menjalankan dari dalam ZIP.
+Jika MULAI-WMS.bat tidak membuka browser atau muncul lalu tertutup, buka
+DIAGNOSA-WMS.bat dan kirim foto pesan yang terlihat di jendela tersebut.
+
+MULAI TESTING RECEIVING
+- Master uji: 20 SKU, 12 cabang, lokasi penyimpanan, user dan tim operator.
+- Tersedia daftar isi resi 20 baris, 5 koli, total 1.400 pcs.
+- Buka Receiving, unggah paket uji melalui tombol di halaman tersebut atau
+  gunakan file contoh/resi-vendor-uji-20-line.csv. Unggah satu kali.
+- Terima semua koli, lanjut pengecekan SKU dan Qty.
+- Buka nomor kereta sekali untuk beberapa koli. Close kereta setelah selesai.
+- Kereta Close yang siap diproses muncul di Putaway. Isi yang masih memerlukan
+  penyelesaian pengecekan atau persetujuan ditahan sampai memenuhi syarat.
+- Selesaikan Putaway, lalu lanjut Alokasi, Batch Picking, Packing, Shipping.
+
+MENUTUP DAN MEMBUKA LAGI
+- Tunggu keterangan Tersimpan di perangkat sebelum menutup browser.
+- Tutup jendela server atau tekan Ctrl+C untuk berhenti.
+- Untuk memakai kembali, jalankan MULAI-WMS.bat dan buka alamat yang sama.
+- Tetap gunakan browser dan profil yang sama. Jangan gunakan Incognito/InPrivate.
+- Jika WMS sudah berjalan, membuka MULAI-WMS.bat lagi akan membuka browser.
+- Jika port 8765 dipakai aplikasi lain, tutup aplikasi tersebut lalu ulangi.
+
+DATA DAN CADANGAN
+- Data transaksi tersimpan di penyimpanan browser pada http://localhost:8765,
+  bukan otomatis di file ZIP atau folder aplikasi.
+- Data tetap ada setelah browser/server ditutup, kecuali data browser dihapus.
+- Klik Cadangan data di bagian atas WMS untuk mengunduh cadangan JSON.
+- Sebelum pindah komputer/browser atau membersihkan browser, unduh cadangan.
+- Di komputer baru: jalankan paket, login, Cadangan data, pilih JSON, centang
+  konfirmasi penggantian, lalu Pulihkan data. Tutup tab WMS lain terlebih dahulu.
+- Data saat ini akan dicadangkan sebelum diganti. Izinkan unduhan browser.
+- Menyalin folder aplikasi saja TIDAK ikut memindahkan transaksi browser.
+- Data dan riwayat dari versi online tidak otomatis disalin ke versi lokal.
+  Paket ini memulai data uji baru pada browser lokal yang belum pernah digunakan.
+- Cadangan paket lokal memindahkan stok, transaksi, kereta, master dan riwayat;
+  PIN lokal tetap mengikuti konfigurasi komputer tujuan.
+
+PIN DAN AKSES
+- PIN awal: 60623560. Sesi login 8 jam, tersedia tombol Keluar.
+- Ganti PIN: tutup server WMS, jalankan GANTI-PIN.bat, isi 8 digit dua kali,
+  lalu jalankan MULAI-WMS.bat kembali. Semua sesi lama menjadi tidak berlaku.
+- Jika lupa PIN, pemilik komputer dapat menjalankan GANTI-PIN.bat.
+- Login ini untuk testing. Pilihan User uji dan Role masih simulasi lokal.
+- Server hanya menerima koneksi dari komputer ini, tidak dari komputer lain
+  di jaringan. Supabase, Mini ERP dan Moka belum dihubungkan.
+
+ISI FOLDER
+MULAI-WMS.bat       Membuka server lokal dan browser
+DIAGNOSA-WMS.bat    Menampilkan pemeriksaan dan pesan kendala WMS
+GANTI-PIN.bat       Mengganti PIN lokal
+server.mjs         Server lokal
+app/               Aplikasi WMS dan fitur cadangan
+runtime/           Node.js Windows beserta lisensinya
+contoh/            Daftar isi resi 20 baris
+source/            Source code aplikasi untuk pengembangan lanjutan
+PETUNJUK.txt        Petunjuk ini
+
+CATATAN PENGEMBANGAN
+Source disertakan tanpa kredensial server online, data transaksi pribadi,
+node_modules, atau konfigurasi penerbitan Sites. Untuk mengembangkan source,
+instal Node.js LTS beserta npm, lalu npm install di folder source.
+Gunakan node portable/build-local.mjs dengan alamat folder output absolut.
+Jangan membuat output di dalam folder source; simpan di folder baru.
+Versi source paket memuat rak 3D, alur operasional ringkas, dan validasi lokasi per SKU.
+Node.js runtime: v24.20.0, https://nodejs.org/en/download
+Distribusi dan checksum: https://nodejs.org/dist/v24.20.0/SHASUMS256.txt
+Lisensi masing-masing komponen disertakan pada runtime dan source.
+
+VALIDASI
+Akses HTTP lokal: login, file aplikasi, cadangan, logout, penolakan permintaan
+lintas situs dan penolakan akses file konfigurasi berhasil diuji.
+Cadangan JSON diuji simpan/pulihkan serta penolakan file rusak/diubah.
+Runtime Windows diverifikasi terhadap checksum resmi distribusi Node.js.
+Peluncuran BAT di Windows fisik dan scanner/kamera tidak diuji di lingkungan ini.
+
+PEMBARUAN RESI DAN KONEKTOR
+Penerimaan menggunakan nomor resi + ekspedisi. Nomor packing list tidak diperlukan.
+Baca integration/README.md untuk pemetaan Supabase/Mini ERP dan API Moka.
+Koneksi langsung belum aktif; akses dan skema harus dilengkapi terlebih dahulu.
+File integration/integration-config.example.json hanya contoh tanpa secret.
+Jika Smart App Control memblokir launcher, gunakan versi browser online atau
+koordinasikan instalasi dengan pengelola IT. Jangan mematikan proteksi Windows.
+
+
+PEMBARUAN LOCATION CONTROL — 8 SEPTEMBER 2026
+- Master SKU: lokasi utama, kelas ABC gudang, dan beberapa lokasi reserve.
+- Master reserve: satu baris per relasi SKU dengan lokasi reserve.
+- Kontrol Gudang > Location control: Mapping SKU, Peta ABC, Kapasitas lokasi.
+- Putaway menampilkan lokasi utama dan reserve terdekat yang menampung qty.
+  Urutan kedekatan mengikuti zona, rak, bin, level; bukan jarak meter fisik.
+- Jika tidak ada satu lokasi yang cukup, panduan membagi qty ke beberapa lokasi.
+  Operator mengubah qty lalu scan tiap lokasi. Sisa tetap tersimpan di kereta.
+- Kapasitas merupakan total pcs seluruh SKU dalam lokasi yang sama.
+- Penuh sementara menghentikan putaway ke lokasi tersebut sampai dibuka kembali.
+- Riwayat perubahan mapping/kapasitas tersedia di Laporan > Location control.
+
+DATA TESTING DAN PEMBARUAN V10
+Tutup seluruh tab WMS dan server versi sebelumnya. Gunakan paket versi ini.
+Versi V10 memulai dataset pengujian baru satu kali sesuai permintaan.
+Refresh berikutnya mempertahankan kemajuan testing Anda.
+Konfigurasi PIN/server tetap mengikuti komputer tujuan.
+Data uji baru: 20 SKU, 20 lokasi utama, 40 relasi reserve, 12 cabang, 8 user,
+4 tim; stok dan semua transaksi dimulai kosong.
+
+1. Unggah contoh/resi-vendor-uji-20-line.csv pada Receiving.
+   Terdapat 20 baris, 5 koli, total 1.400 pcs.
+2. Terima koli, cek isi, close kereta, lalu Putaway mengikuti lokasi utama.
+3. Untuk uji reserve, setelah Putaway 4 SKU pertama dan SEBELUM alokasi,
+   unggah contoh/resi-uji-reserve-4-line.csv (4 baris, 1 koli, 820 pcs).
+   Lokasi utama 4 SKU pertama sudah penuh oleh resi awal.
+4. Setelah pengecekan dan close kereta:
+   - SKU pertama 20 pcs dan kedua 40 pcs ke reserve terdekat.
+   - SKU ketiga 160 pcs ke reserve kedua yang mampu menampung seluruh qty.
+   - SKU keempat 600 pcs: 100 pcs ke reserve pertama, 400 ke reserve kedua,
+     dan 100 pcs tetap di kereta karena kapasitas gabungan belum cukup.
+5. Gunakan Location control untuk menambah reserve atau menambah kapasitas
+   sesuai ruang fisik, lalu selesaikan sisa 100 pcs. Kereta kembali kosong.
+6. Buka Peta ABC > Stok fisik untuk melihat hasil Putaway.
+   Contoh mapping lengkap juga tersedia pada contoh/mapping-lokasi-uji.csv.
+
+Paket ini belum menyinkronkan transaksi antar komputer. Koneksi integrasi
+nyata masih membutuhkan konfigurasi Supabase/Mini ERP dan Moka.
+
+RAK 3D, LAYAR KECIL, DAN BATASAN LOKASI
+- Buka Kontrol Gudang > Location control > Peta ABC 3D.
+- Warna A biru, B kuning, C ungu mengikuti Master SKU. Pilih Mapping lokasi
+  untuk rencana penempatan, atau Stok fisik untuk hasil penyimpanan.
+- Gunakan Fokus rak, putar Kiri/Kanan, Perbesar, dan sudut pandang atas.
+  Ketuk bin untuk melihat nomor lokasi lengkap, SKU, Qty, dan kapasitas.
+- Tetap tersedia daftar lokasi 2D, pencarian, filter kelas ABC dan zona.
+- Level dan bin mengikuti Master lokasi; ukuran serta posisi rak mengikuti
+  tata letak aktual yang sudah disimpan.
+- Handphone/tablet: informasi pelengkap dilipat, aksi dan kolom input
+  diperbesar. Buka rincian jika perlu; filter setiap kolom tetap tersedia.
+- Putaway: mulai kerja, pilih kereta, scan SKU, periksa/edit Qty, scan lokasi.
+  Lokasi harus merupakan lokasi utama atau reserve SKU itu sendiri.
+- SKU tanpa mapping, lokasi SKU lain, lokasi nonaktif, lokasi ditandai
+  penuh, dan qty melebihi kapasitas akan ditolak sebelum stok berubah.
+- Mapping diperiksa lagi saat simpan, termasuk jika diubah setelah scan SKU.
+- Pemeriksaan logika data dan render komponen lulus. Uji interaksi browser
+  otomatis untuk V5 terhalang kebijakan akses lingkungan pengembangan.
+  Uji sentuh, scanner, dan kamera pada perangkat fisik masih diperlukan.
+
+PENGATURAN LAYOUT AKTUAL DAN SPACE UTILIZATION — V6
+1. Buka Location control > Atur tata letak.
+2. Isi lebar (sumbu X) dan panjang (sumbu Y) gudang dalam meter.
+3. Pilih rak, isi ukuran lebar, dalam, tinggi, serta arah 0/90/180/270 derajat.
+4. Geser rak pada denah tampak atas, gunakan tombol panah, atau isi X/Y.
+   X/Y adalah sudut kiri atas tapak rak sesudah diputar; titik 0,0 ada di
+   sudut kiri atas gudang. Geser dengan interval 0,1 m; input angka 0,01 m.
+5. Perbaiki peringatan rak bertumpuk atau melewati batas gudang, lalu
+   klik Simpan tata letak. Peta ABC 3D mengikuti konfigurasi tersimpan.
+6. Riwayat perubahan tersedia di Laporan > Location control.
+
+Dimensi awal hanya contoh otomatis. Ukuran gudang sebenarnya harus diisi
+oleh tim kontrol. Penambahan rak di Master lokasi perlu penempatan baru.
+Data testing yang sudah dikerjakan tetap dipertahankan.
+
+Dashboard dan Location control menonjolkan indikator yang sama:
+- Utilisasi lokasi = lokasi aktif dengan stok tercatat / seluruh lokasi aktif.
+- Utilisasi kapasitas (pcs) = stok tercatat / kapasitas pada lokasi yang
+  kapasitasnya sudah diatur. Jumlah lokasi tanpa kapasitas ditampilkan.
+- Luas lantai untuk rak = total luas tapak rak / luas gudang tersimpan.
+  Perhitungan area baru aktif setelah ukuran dan seluruh posisi rak lengkap.
+  Area selain tapak rak mencakup lorong dan area kerja; bukan otomatis
+  ruang bebas yang dapat diisi barang. Persentase pcs bukan volume m3.
+
+Stok mengikuti pencatatan WMS; pada alur saat ini pengurangan stok kiriman
+tercatat saat Shipping. Layout dan transaksi tetap tersimpan per browser,
+belum dibagi otomatis antar perangkat. Paket cadangan memuat layout.
+Pemeriksaan logika dan render komponen dilakukan. Uji sentuh/drag langsung
+di handphone atau tablet belum dapat dilakukan di lingkungan ini.
+
+
+LOKASI, ABC, PICKING KERETA, DAN PACKING KOLI — V7
+1. Location control > Atur tata letak > Tambah lokasi.
+   Isi kode rak (A–P + dua angka), level 1–9, bin 1–99, dan kapasitas pcs.
+   Rentang level/bin dapat membuat beberapa lokasi sekaligus. Lokasi langsung
+   tersimpan di Master lokasi. Kode duplikat ditolak. Untuk rak baru, atur
+   ukuran, posisi, dan arah lalu Simpan tata letak.
+2. ABC di Location control hanya mengikuti abcClass di Master SKU.
+   Ubah kelas A/B/C dari Master SKU. Mapping di Location control mengatur
+   lokasi utama/reserve tanpa mengganti klasifikasi SKU.
+3. Picking dimulai dengan scan/foto/input nomor kereta. Saat kereta pertama
+   kali digunakan, isi kapasitas aktual dalam pcs. Kapasitas tersimpan untuk
+   penggunaan berikutnya; belum menggunakan volume atau berat barang.
+4. Buat batch dari picking list hasil alokasi. Sistem mengurutkan per store,
+   lokasi terdekat, lalu membagi qty sesuai kapasitas rencana. Satu store
+   dapat memiliki beberapa batch. Rute memakai koordinat denah yang valid;
+   jika belum tersedia, memakai kedekatan kode lokasi. Jarak denah belum
+   memperhitungkan lorong, hambatan, atau jalur jalan yang sebenarnya.
+5. Setelah scan kereta, klik Ambil batch. Satu batch dikunci ke satu operator
+   dan satu kereta. Batch lain yang sudah diambil tidak dapat direbut.
+   Jika kereta lebih kecil dari batch menunggu, pilih Pecah sesuai kereta.
+6. Ikuti tugas: scan lokasi > isi Qty > scan SKU. Hasil langsung masuk kereta.
+   Batch selesai setelah seluruh tugas diambil atau short-pick diselesaikan.
+   Short-pick hanya mengurangi sisa tugas lokasi itu dan membuat cycle count.
+   Beberapa batch untuk store yang sama dapat masuk kereta selama kapasitas
+   mencukupi. Selesaikan batch, lalu Lepas / ganti kereta untuk memakai yang baru.
+7. Packing: pilih store > scan/input nomor koli atau Buat nomor koli otomatis.
+   Scan/pilih kereta hasil picking > isi qty > scan SKU. Hanya hasil batch
+   FINISHED yang bisa dimasukkan. Untuk SKU sama pada beberapa batch di kereta,
+   sistem mengambil dari batch tertua dahulu dan menyimpan seluruh jejak asal.
+8. Satu koli bisa mencakup beberapa batch, dan satu batch bisa dibagi ke
+   beberapa koli. Store tidak boleh tercampur dalam satu kereta atau koli.
+   Sisa barang tetap di kereta. Kereta kosong otomatis selesai dan bisa
+   digunakan kembali di Receiving maupun Picking.
+9. Seal koli & buat surat jalan setelah isi koli lengkap secara fisik.
+   Shipping dapat dikonfirmasi per koli, termasuk saat batch/store masih
+   memiliki barang pada koli lain. Stok dan reservasi berkurang hanya sesuai
+   qty yang dikirim; batch, kereta, lokasi asal, dan koli tetap dapat ditelusuri.
+10. Laporan > Picking / Packing / Shipping menyimpan riwayat proses selesai.
+    Nomor koli dan batch asal juga terlihat pada daftar Shipping.
+
+Data lama dipertahankan. Dokumen picking/packing yang sudah berjalan dengan
+alur sebelumnya dapat diselesaikan melalui tombol dokumen sebelum pembaruan.
+Semua batch baru pada menu utama menggunakan alur kereta dan nomor koli V7.
+Cadangan V6 tetap dapat dipulihkan. Tidak ada reset testing pada pembaruan ini.
+
+Verifikasi: 101 pengujian logika dan 11 rangkaian render lulus, termasuk
+siklus receiving 20 line / 1.400 pcs sampai pengiriman ke 12 store, pemecahan
+batch, packing gabungan/sebagian, scan ganda, batas kapasitas, dan kepemilikan
+operator. Uji sentuh, scanner, kamera, dan launcher Windows pada perangkat
+fisik belum dilakukan. Data dan kepemilikan pekerjaan masih berlaku pada
+penyimpanan browser setempat; sinkronisasi multi-perangkat menunggu integrasi.
+
+
+RAK 3D REALISTIS — V8
+- Location control > Peta ABC 3D menampilkan rangka baja, penyangga silang,
+  balok rak, pelat ambalan, dan bayangan lantai.
+- Tekstur bal kaos berplastik dibuat melalui Higgsfield dan disertakan lokal.
+  Pengoperasian rak tidak perlu akun Higgsfield atau koneksi internet.
+- Label A/B/C mengikuti Master SKU. Tekan lokasi untuk melihat SKU dan qty.
+- Mapping lokasi menunjukkan rencana; Stok fisik menunjukkan lokasi berisi
+  sesuai transaksi. Lokasi kosong tampil tanpa bal.
+- Jumlah dan tampilan bal adalah ilustrasi, bukan hitungan kemasan aktual.
+- Posisi, ukuran, rotasi, filter, zoom, dan fokus rak tetap mengikuti WMS.
+- Tidak ada reset stok, master, konfigurasi, atau kemajuan testing.
+- Pemeriksaan render, lokasi kosong, klasifikasi dan geometri lulus. Visual
+  SVG diperiksa secara statis; sentuhan perangkat fisik belum diuji.
+
+
+EDIT BIN/LEVEL, PETA LUAS, DAN MENU BUKA-TUTUP — V9
+1. Buka Location control > Atur tata letak. Pilih rak pada denah atau daftar.
+2. Tekan Ubah bin & level. Isi jumlah level dan jumlah bin per level.
+   Level dimulai dari 1; bin dimulai dari 01 pada setiap level.
+   Jika lokasi bertambah, isi kapasitas pcs untuk lokasi baru.
+3. Periksa daftar lokasi baru, yang dipulihkan, dan yang dinonaktifkan.
+   Simpan bin & level memperbarui Master lokasi, peta 3D, dan indikator
+   utilisasi. Ukuran fisik dan posisi rak dalam meter tetap tersimpan.
+4. Pengurangan ditolak jika lokasi masih berisi stok, menjadi lokasi
+   utama/reserve SKU, atau dipakai pekerjaan yang belum selesai.
+   Pindahkan stok/mapping dan selesaikan pekerjaan tersebut dahulu.
+5. Lokasi yang dikurangi akan dinonaktifkan, bukan dihapus dari riwayat.
+   Tambah kembali jumlah bin/level untuk memulihkan nomor dan kapasitasnya.
+   Master lokasi menandainya Nonaktif (tata letak); riwayat perubahan
+   tersedia di Laporan > Location control.
+6. Peta ABC 3D memiliki area lebih tinggi dan mengikuti lebar layar.
+   Tekan Layar penuh untuk membuka peta seluas jendela browser.
+   Filter, fokus rak, rotasi, zoom, dan rincian bin tetap tersedia.
+   Tombol Tutup kembali ke tampilan biasa; Escape menutup dialog teratas.
+7. Tekan ikon menu pada bagian atas untuk menyembunyikan/menampilkan sidebar.
+   Tekan judul Overview, Operasional, Kontrol gudang, Pengelolaan, atau
+   Pengaturan untuk membuka/menutup daftar di bagian itu saja.
+   Pilihan tersimpan di browser ini. Pada handphone/tablet, sidebar tampil
+   sebagai panel sementara; pilih menu, tekan Tutup, atau ketuk area luar.
+
+Verifikasi V9: 107 pengujian logika dan 6 rangkaian render lulus, mencakup
+penambahan/pengurangan/pemulihan lokasi, stok dan mapping, pekerjaan aktif,
+konflik perubahan, cadangan, geometri 3D, akses menu dan lipatan per bagian.
+Siklus receiving hingga pengiriman 1.400 pcs ke 12 store tetap lulus.
+Pemeriksaan browser interaktif terhalang kebijakan akses lingkungan.
+Interaksi sentuh dan launcher Windows pada perangkat fisik belum diuji.
+Tidak ada reset data testing pada pembaruan V9.
+
+
+RESI BERBEDA SETIAP UNDUHAN — V10
+- Receiving > Data & panduan testing > Skenario testing.
+- Siklus normal: 20 line; 4, 5 atau 10 koli.
+- SKU sama di beberapa koli: 20 line untuk menguji penggabungan isi kereta.
+- Reserve & pembagian qty: 4 line, termasuk qty lebih besar dari kapasitas
+  satu lokasi. Isi lokasi utama dahulu, lalu ikuti rekomendasi Putaway.
+- Setiap klik unduh membuat resi, koli, PO, nama file dan variasi isi baru.
+  Gunakan tombol dalam aplikasi untuk membuat skenario berulang.
+- Panduan dan label mengikuti file yang dipilih pada daftar unduhan.
+- Unduh/unggah tidak mengubah stok; stok dicatat setelah pengecekan selesai.
+- Master berisi 20 SKU, 20 lokasi utama, 40 reserve, 12 store, parameter
+  DAD/klasifikasi/safety stock, 4 tim, 8 user, dan 7 kereta kosong.
+- KRT-UJI-001 hingga 005 kapasitas 280 pcs. Kereta outbound KRT-OUT-001
+  kapasitas 60 pcs dan KRT-OUT-002 kapasitas 120 pcs sudah terdaftar.
+- Reset juga menghapus picking cart runs dan koli packing sebelumnya.
+- 111 pengujian logika lulus, termasuk siklus file hasil generator sampai
+  shipping ke 12 store, SKU berulang antarkoli, dan reset yang hanya sekali.
+
+PEMBARUAN V12 - PENGUJIAN PARALEL
+Pilihan User uji sekarang disimpan per tab. Pilih operator berbeda pada tiap tab
+untuk mencoba pekerjaan bersamaan. Koli checking dan kereta putaway yang sedang
+dikerjakan tidak dapat diambil operator lain. Selesaikan kereta aktif sebelum
+membuka kereta putaway berikutnya. Antrean menampilkan nama operator pemilik.
+Data masih lokal per browser: komputer atau browser berbeda BELUM berbagi data.
+Sinkronisasi lintas perangkat membutuhkan koneksi backend bersama (Supabase).
+Data testing yang sudah dikerjakan tetap dipertahankan; tidak direset.
+
+PEMBARUAN V13 - PUTAWAY SATU LOKASI
+Tabel isi kereta menampilkan SKU, qty, lokasi utama, dan aksi. Setelah scan SKU,
+sistem menampilkan satu lokasi tujuan. Lokasi utama dipakai selama masih tersedia;
+ketika penuh/diblokir, sistem memilih reserve terdekat. Ketik qty lalu scan lokasi
+yang ditampilkan. Stok bertambah hanya setelah scan berhasil. Operator berbeda
+dapat memproses kereta berbeda pada saat yang sama. Satu kereta tetap dikunci
+untuk satu operator sampai selesai.
+
+PEMBARUAN V14 - PANDUAN LOKASI RINGKAS
+Kartu tujuan Putaway hanya menampilkan jenis lokasi (Utama/Reserve), nomor lokasi,
+dan angka sisa kapasitas. Kalimat penjelasan tambahan dihapus agar mudah dibaca
+operator melalui handphone atau tablet.

@@ -1,0 +1,10 @@
+import React,{useEffect,useState} from 'react';
+import {Play,Pause,Check,Clock} from 'lucide-react';
+import {Button,Notice} from './ui.jsx';
+import {activeWork,startWork,stopWork,sessionMilliseconds,processes} from './lib/productivity.js';
+export default function WorkControl({s,act,user,process,reference,disabled=false}){
+ const [tick,setTick]=useState(Date.now());useEffect(()=>{const timer=setInterval(()=>setTick(Date.now()),1000);return()=>clearInterval(timer)},[]);
+ const active=activeWork(s,user),current=(s.workSessions||[]).find(w=>w.userId===user&&w.process===process&&w.reference===reference&&w.status!=='CLOSED'),running=current?.status==='RUNNING',conflict=active&&active.id!==current?.id;
+ const total=(s.workSessions||[]).filter(w=>w.userId===user&&w.process===process&&w.reference===reference).reduce((n,w)=>n+sessionMilliseconds(w,-Infinity,tick),0),seconds=Math.floor(total/1000),label=[Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
+ return <div className="work-control"><div className="work-control-main"><Clock size={19}/><div><strong>{s.workers?.find(w=>w.id===user)?.name||'Pilih operator'}</strong><small>{processes[process]} · {running?'Waktu kerja berjalan':current?'Dijeda':'Belum dimulai'}</small></div><b className="work-clock">{label}</b></div><div className="work-control-actions">{running?<><Button icon={Pause} variant="secondary" onClick={()=>act(d=>stopWork(d,current.id,user),'Waktu kerja dijeda')}>Jeda</Button><Button icon={Check} variant="secondary" onClick={()=>act(d=>stopWork(d,current.id,user,true),'Sesi kerja selesai')}>Selesai kerja</Button></>:<Button icon={Play} disabled={disabled||!reference||!!conflict} onClick={()=>act(d=>startWork(d,process,reference,user),'Pencatatan waktu kerja dimulai')}>{current?'Lanjutkan kerja':'Mulai kerja'}</Button>}</div>{conflict&&<Notice>Masih ada {processes[active.process]} untuk {active.reference}. <button type="button" className="text-button" onClick={()=>act(d=>stopWork(d,active.id,user),'Pekerjaan sebelumnya dijeda')}>Jeda pekerjaan sebelumnya</button></Notice>}</div>
+}
