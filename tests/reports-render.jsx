@@ -1,0 +1,22 @@
+import React from 'react';
+import {renderToString} from 'react-dom/server';
+import assert from 'node:assert/strict';
+import Receiving from '../src/modules/Receiving.jsx';
+import Reports,{ReportDetails} from '../src/modules/Reports.jsx';
+import {seed} from '../src/lib/data.js';
+import {processHistory,reportTypes} from '../src/lib/reports.js';
+import {importPackingList,receiveKoli,confirmKoliIntake,beginKoliCart,checkKoliItem,finishKoliCheck} from '../src/lib/phase1.js';
+import {startWork} from '../src/lib/productivity.js';
+const s=seed(),user='OP-IN-01',props={s,user,act:()=>{},notify:()=>{},navigate:()=>{}};
+s.receipts=[];s.kolis=[];
+function make(id,totalKoli=1){return importPackingList(s,Array.from({length:totalKoli},(_,i)=>({packingListNo:id,vendorName:'Vendor '+id,externalResiNo:'RESI-'+id,expedition:'Uji',totalKoli,vendorKoliNo:id+'-K'+i,sku:s.items[0].sku,qty:2})),'test.csv',user)[0]}
+const done=make('COMPLETED'),k=s.kolis[0];startWork(s,'RECEIVING',done,user);receiveKoli(s,done,k.koliNo,user);confirmKoliIntake(s,done,user);beginKoliCart(s,k.koliNo,'KRT-REPORT',user);checkKoliItem(s,k.koliNo,s.items[0].sku,'',2,'GOOD',user,'KRT-REPORT');finishKoliCheck(s,k.koliNo,{},user);
+const pending=make('ACTIVE',2);s.receipts.reverse();
+let html=renderToString(<Receiving {...props}/>);assert(html.includes('ACTIVE-K0'));assert(!html.includes('COMPLETED'));assert(html.includes('Buka laporan'));
+startWork(s,'RECEIVING',pending,user);receiveKoli(s,pending,'ACTIVE-K0',user);
+html=renderToString(<Receiving {...props}/>);assert(!html.includes('ACTIVE-K0'));assert(html.includes('ACTIVE-K1'));assert(!html.includes('COMPLETED'));
+receiveKoli(s,pending,'ACTIVE-K1',user);html=renderToString(<Receiving {...props}/>);assert(!html.includes('ACTIVE-K1'));assert(html.includes('Konfirmasi penerimaan koli'));assert(!html.includes('disabled="">Konfirmasi'));
+html=renderToString(<Reports {...props}/>);assert(html.includes('COMPLETED-K0'));assert(html.includes('ACTIVE-K0'));assert(html.includes('Filter Petugas'));assert(html.includes('Filter Waktu tercatat (WITA)'));assert(html.includes('Ekspor laporan'));
+const detail=processHistory(s).checking[0];html=renderToString(<ReportDetails entry={detail}/>);assert(html.includes('KRT-REPORT'));assert(html.includes('Hasil scan per kereta'));assert(html.includes('Filter Nomor kereta'));assert(!html.includes('Konfirmasi selesai'));
+for(const [type] of reportTypes)assert(renderToString(<Reports {...props} initialReport={type}/>).includes('Jenis laporan'));
+console.log('Reports render OK: completed documents and received koli hidden in Receiving, confirmation retained, history/detail/filter/export available for all configured processes');

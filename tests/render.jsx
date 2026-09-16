@@ -1,0 +1,6 @@
+import {UserManagement,RoleManagement,SystemSettings} from '../src/modules/Settings.jsx';
+import Reports from '../src/modules/Reports.jsx';
+import Workforce from '../src/modules/Workforce.jsx';
+import React from 'react';import {renderToString} from 'react-dom/server';
+import Dashboard from '../src/modules/Dashboard.jsx';import Master from '../src/modules/Master.jsx';import Receiving from '../src/modules/Receiving.jsx';import Putaway from '../src/modules/Putaway.jsx';import Allocation from '../src/modules/Allocation.jsx';import {Picking,Packing,Shipping} from '../src/modules/Fulfillment.jsx';import {Approvals,Opname,Returns} from '../src/modules/Governance.jsx';import {Inventory,ActivityLog,Integrations} from '../src/modules/Inventory.jsx';import {seed} from '../src/lib/data.js';
+const s=seed();for(const C of [UserManagement,RoleManagement,SystemSettings,Dashboard,Master,Receiving,Putaway,Allocation,Picking,Packing,Shipping,Workforce,Reports,Approvals,Opname,Returns,Inventory,ActivityLog,Integrations]){const html=renderToString(<C s={s} act={()=>{}} notify={()=>{}} user="TEST" role="PPIC" navigate={()=>{}}/>);if(!html.length)throw Error(C.name+' rendered empty');console.log(C.name+': OK')}

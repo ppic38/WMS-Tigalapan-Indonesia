@@ -1,0 +1,30 @@
+import React from 'react';
+import {renderToString} from 'react-dom/server';
+import assert from 'node:assert/strict';
+import {Table, tableRows, cellValue} from '../src/FilterTable.jsx';
+import {Product,Badge,Button} from '../src/ui.jsx';
+import Master from '../src/modules/Master.jsx';
+import {seed} from '../src/lib/data.js';
+import {filterRows,paginateRows} from '../src/lib/table-filters.js';
+const s=seed();
+for(const tab of ['items','locations','reserve','stores','params','upload']) {
+ const html=renderToString(<Master s={s} act={()=>{}} notify={()=>{}} initial={tab}/>);
+ const headers=html.match(/<th scope="col">/g)||[], triggers=html.match(/class="column-filter-trigger /g)||[];
+ assert(headers.length>0); assert.equal(triggers.length,headers.length,`All ${tab} columns expose filters`);
+ console.log(`Master ${tab}: ${headers.length} column filters`);
+}
+const children=s.items.map((item,i)=><tr key={item.sku}><td><Product item={item}/></td><td data-filter-value={i}><strong>{i}</strong><small> {99} rusak</small></td><td><Badge status="PENDING_SPV"/></td><td><button aria-label="Cetak label">◆</button></td><td><Button disabled>Edit</Button></td></tr>);
+const mobile=s.items.map(item=><div key={item.sku}>{item.sku}</div>);
+const rows=tableRows(children,mobile);
+assert.equal(rows.length,20);
+assert.equal(rows[19].values[1],19);assert.equal(rows[0].values[2],'Menunggu SPV');
+assert.equal(cellValue(<button aria-label="Cetak label"><svg/></button>),'Cetak label');
+assert.equal(rows[0].values[4],'Edit (tidak tersedia)');
+const filtered=filterRows(rows,{0:{query:s.items[19].sku}},[{type:'text'}]);
+const view=paginateRows(filtered,2,15);
+assert.equal(view.page,1);assert.equal(view.rows[0].element.key,s.items[19].sku);assert.equal(view.rows[0].mobile.key,s.items[19].sku);
+const html=renderToString(<Table headers={['Produk',{label:'Stok',type:'number'},'Status','Label','Aksi']} mobileRows={mobile}>{children}</Table>);
+assert.equal((html.match(/<tr>/g)||[]).length,16);
+assert(html.includes('1–15 dari 20 data'));
+assert(html.includes('filter-table-mobile'));
+console.log('Product, status, action, raw numeric values, all-page filtering and shared desktop/mobile pagination: OK');

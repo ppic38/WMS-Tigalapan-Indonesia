@@ -1,0 +1,22 @@
+import React from 'react';
+import {renderToString} from 'react-dom/server';
+import assert from 'node:assert/strict';
+import {seed} from '../src/lib/data.js';
+import {createTestingState,generateTestingResi} from '../src/lib/testing-data.js';
+import Receiving from '../src/modules/Receiving.jsx';
+import Putaway from '../src/modules/Putaway.jsx';
+import Dashboard from '../src/modules/Dashboard.jsx';
+import {UserManagement} from '../src/modules/Settings.jsx';
+const s=createTestingState(seed()),props={s,user:'OP-ADMIN',role:'SPV',accountId:'USER-ADMIN',act:()=>{},notify:()=>{},navigate:()=>{}};
+const html=renderToString(<Receiving {...props}/>);
+for(const text of ['Paket uji Receiving siap','20 line','5 koli','1.400','Unduh data resi uji','Panduan &amp; label uji','Unggah daftar isi resi vendor'])assert(html.includes(text),text);
+assert(!html.includes('Konfirmasi penerimaan koli'));assert(!html.includes('EXP-TGL-0826'));
+const putaway=renderToString(<Putaway {...props}/>);assert(putaway.includes('Tidak ada kereta yang siap putaway'));
+assert(renderToString(<Dashboard {...props}/>).includes('Ringkasan gudang'));
+const users=renderToString(<UserManagement {...props}/>);for(const name of ['Administrator Uji','Supervisor Uji','Manager Uji','PPIC Uji','Operator Inbound 02','Operator Outbound 02'])assert(users.includes(name));
+console.log('Fresh test render OK: upload-first Receiving, visible test pack, empty Putaway and complete testing users');
+
+const first=generateTestingResi(s,'cycle'),second=generateTestingResi(s,'mixed');
+const generated=renderToString(<Receiving {...props}/>);
+for(const label of ['Skenario testing','Siklus normal','SKU sama di beberapa koli','Reserve &amp; pembagian qty','Panduan untuk file yang sudah dibuat',first.rows[0].externalResiNo,second.rows[0].externalResiNo])assert(generated.includes(label),label);
+assert.equal(s.receipts.length,0);assert.equal(s.stock.length,0);
