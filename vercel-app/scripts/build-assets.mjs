@@ -40,6 +40,12 @@ await esbuild.build({
   format: "esm",
   define: { "process.env.NODE_ENV": '"production"' },
   outfile: path.join(publicDir, "app.js"),
+  // Entry point ada di ../src (di LUAR folder ini) -- resolusi node_modules esbuild yang berjalan
+  // ke atas dari situ tidak akan pernah sampai ke node_modules DI SINI (bukan folder leluhurnya).
+  // react/react-dom/lucide-react sengaja dideklarasikan di package.json folder ini (bukan di
+  // source/package.json) supaya Vercel (yang cuma `npm install` di folder ini, lihat Root
+  // Directory) tetap bisa install dependency yang dipakai app.jsx.
+  nodePaths: [path.join(root, "node_modules")],
 });
 
 console.log("public/ siap: aset dari web/ disalin, src/app.jsx dibundel jadi public/app.js");
