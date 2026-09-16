@@ -33,7 +33,7 @@ test('Invalid costs reject whole import; changed ERP costs do not silently overw
 test('Mini ERP gateway retains hpp/item while approved outbox contract carries cost metadata unchanged',async()=>{
  const s=make(),rows=generateTestingResi(s).rows,seen=[];
  const gateway=createIntegrationGateway(async(url,options)=>{seen.push(JSON.parse(options.body));return new Response(JSON.stringify(String(url).includes('resi_rpc')?{rows,snapshotId:'cost',truncated:false,totalRows:rows.length}:{id:'cost-event',status:'QUEUED'}),{status:200})});
- const env={WMS_INTEGRATION_ENABLED:'true',SUPABASE_URL:'https://testing.supabase.co',SUPABASE_SERVER_KEY:'test',MINI_ERP_RESI_RPC:'resi_rpc',WMS_OUTBOX_RPC:'outbox_rpc',WMS_ALLOW_EVENT_SUBMIT:'true'};
+ const env={WMS_INTEGRATION_ENABLED:'true',SUPABASE_URL:'https://testing.supabase.co',SUPABASE_ANON_KEY:'anon-test',SUPABASE_SERVER_KEY:'test',MINI_ERP_RESI_RPC:'resi_rpc',WMS_OUTBOX_RPC:'outbox_rpc',WMS_ALLOW_EVENT_SUBMIT:'true'};
  const res=await gateway(new Request('https://wms.test/api/integrations/resi'),env);assert.equal(res.status,200);assert.equal((await res.json()).rows[0]['hpp/item'],rows[0]['hpp/item']);
  const event={id:'cost-event',target:'MOKA',event:'RECEIPT_ITEM_COSTS',payload:{metadataOnly:true,lines:[{hppMinor:12345,hppPerItem:123.45}]}};
  const submitted=await gateway(new Request('https://wms.test/api/integrations/outbox',{method:'POST',body:JSON.stringify({action:'submit',event})}),env);assert.equal(submitted.status,200);assert.deepEqual(seen.at(-1).p_event.payload,event.payload);

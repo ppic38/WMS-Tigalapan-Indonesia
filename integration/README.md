@@ -22,7 +22,15 @@ Penerimaan kini menggunakan externalResiNo + expedition sebagai identitas kirima
 
 WMS_INTEGRATION_ENABLED=true setelah endpoint/mapping terpasang.
 SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_SERVER_KEY=secret khusus server (jangan masukkan ke frontend, ZIP, git, atau chat)
+SUPABASE_ANON_KEY=anon key project Mini ERP (Settings > API Keys) -- WAJIB. Dipakai sebagai header
+  `apikey`; API Gateway Supabase (versi terbaru) menolak sembarang JWT bertanda tangan valid
+  sebagai apikey, jadi ini harus persis anon key yang terdaftar di project itu. TIDAK menentukan
+  akses -- akses sesungguhnya tetap dari SUPABASE_SERVER_KEY di bawah.
+SUPABASE_SERVER_KEY=token custom-role (BUKAN service_role Mini ERP) -- dikirim sebagai
+  `Authorization: Bearer`, menentukan role Postgres yang benar-benar dipakai lewat klaim JWT
+  "role" (mis. wms_integration_role, cuma boleh EXECUTE RPC resi/outbox, tidak ada akses tabel
+  apa pun -- lihat migration terkait di repo Mini ERP). Jangan masukkan ke frontend, ZIP, git,
+  atau chat.
 MINI_ERP_RESI_RPC=nama RPC penghasil snapshot resi
 WMS_OUTBOX_RPC=wms_integration_event
 MOKA_ACCESS_TOKEN=token OAuth Moka di server

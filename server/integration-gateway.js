@@ -2,7 +2,7 @@
 const columns=['externalResiNo','vendorName','shippingDate','expedition','totalKoli','vendorKoliNo','poNumber','sku','qty','hpp/item'];
 const events={MINI_ERP:['RECEIVING','KOLI_INTAKE','PUTAWAY','SHIPPING'],MOKA:['RECEIPT_ITEM_COSTS','PUTAWAY','STOCK_ADJUSTMENT','RETURN_SELLABLE','TRANSFER_STOCK']};
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
-const configured=env=>({enabled:env.WMS_INTEGRATION_ENABLED==='true',miniErp:!!(env.SUPABASE_URL&&env.SUPABASE_SERVER_KEY&&env.MINI_ERP_RESI_RPC),outbox:!!(env.SUPABASE_URL&&env.SUPABASE_SERVER_KEY&&env.WMS_OUTBOX_RPC),moka:!!(env.MOKA_ACCESS_TOKEN&&env.MOKA_OUTLET_MAP)});
+const configured=env=>({enabled:env.WMS_INTEGRATION_ENABLED==='true',miniErp:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.MINI_ERP_RESI_RPC),outbox:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.WMS_OUTBOX_RPC),moka:!!(env.MOKA_ACCESS_TOKEN&&env.MOKA_OUTLET_MAP)});
 function outlets(env){let value;try{value=JSON.parse(env.MOKA_OUTLET_MAP||'{}')}catch{throw Error('Pemetaan outlet Moka di server tidak valid.')}
  if(!value||Array.isArray(value)||Object.values(value).some(v=>!/^\d+$/.test(String(v)))||new Set(Object.values(value).map(String)).size!==Object.keys(value).length)throw Error('Pemetaan outlet Moka harus unik dan berupa ID angka.');return value;}
 async function boundedJSON(response){const reader=response.body?.getReader();let size=0;const chunks=[];if(reader)while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>12*1024*1024){await reader.cancel();throw Error('Data terlalu besar. Persempit data pada konektor sumber.')}chunks.push(value)}const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}try{return JSON.parse(new TextDecoder().decode(bytes))}catch{throw Error('Respons sistem tujuan bukan JSON yang valid.')}}
@@ -10,10 +10,18 @@ export function createIntegrationGateway(fetcher=fetch){
  async function request(url,options){let response;try{response=await fetcher(url,{...options,redirect:'error',signal:AbortSignal.timeout(20000)})}catch{throw Error('Koneksi terputus atau waktu tunggu habis. Untuk pengiriman, periksa status event sebelum mencoba ulang.')}
  if(!response.ok)throw Error(`Sistem tujuan menolak permintaan (HTTP ${response.status}). Periksa konfigurasi dan izin konektor.`);
  const body=await boundedJSON(response);if(body.meta?.code&&body.meta.code!==200)throw Error(`Moka menolak permintaan (${body.meta.code}).`);return body;}
+ // 2 kredensial TERPISAH & dua-duanya wajib (owner Mini ERP, 2026-09-16): `apikey` HARUS key
+ // project yang terdaftar (anon) supaya API Gateway Supabase menerima request sama sekali --
+ // Gateway itu SEKARANG menolak sembarang JWT bertanda tangan valid sebagai `apikey` (beda dari
+ // versi Supabase lama yang jadi asumsi awal kode ini). `Authorization: Bearer` membawa
+ // SUPABASE_SERVER_KEY -- token custom-role (BUKAN service_role Mini ERP) yang PostgREST pakai
+ // untuk menentukan role eksekusi sesungguhnya (`wms_integration_role`, cuma boleh EXECUTE 2 RPC
+ // ini, tidak ada akses tabel apa pun -- lihat integration/README.md & migration Mini ERP terkait).
  async function rpc(env,name,payload){
   const url=new URL(env.SUPABASE_URL);if(url.protocol!=='https:'||!url.hostname.endsWith('.supabase.co')||url.username||url.password||url.port)throw Error('Gunakan URL project Supabase HTTPS yang valid.');
+  if(!env.SUPABASE_ANON_KEY)throw Error('SUPABASE_ANON_KEY belum dikonfigurasi.');
   if(!/^[a-z][a-z0-9_]{0,62}$/.test(name||''))throw Error('Nama RPC integrasi belum dikonfigurasi.');
-  return request(new URL('/rest/v1/rpc/'+name,url),{method:'POST',headers:{apikey:env.SUPABASE_SERVER_KEY,...(env.SUPABASE_SERVER_KEY.startsWith('eyJ')?{Authorization:'Bearer '+env.SUPABASE_SERVER_KEY}:{}),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  return request(new URL('/rest/v1/rpc/'+name,url),{method:'POST',headers:{apikey:env.SUPABASE_ANON_KEY,Authorization:'Bearer '+env.SUPABASE_SERVER_KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});
  }
  return async function handle(requestIn,env){
   const url=new URL(requestIn.url),path=url.pathname,config=configured(env);

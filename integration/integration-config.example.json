@@ -1,6 +1,7 @@
 {
   "WMS_INTEGRATION_ENABLED": "false",
   "SUPABASE_URL": "",
+  "SUPABASE_ANON_KEY": "",
   "SUPABASE_SERVER_KEY": "",
   "MINI_ERP_RESI_RPC": "",
   "WMS_OUTBOX_RPC": "wms_integration_event",
