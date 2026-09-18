@@ -4,6 +4,7 @@
   "SUPABASE_ANON_KEY": "",
   "SUPABASE_SERVER_KEY": "",
   "MINI_ERP_RESI_RPC": "",
+  "MINI_ERP_MASTER_SKU_RPC": "",
   "WMS_OUTBOX_RPC": "wms_integration_event",
   "MOKA_ACCESS_TOKEN": "",
   "MOKA_OUTLET_MAP": "{}",

@@ -2,7 +2,7 @@
 const columns=['externalResiNo','vendorName','shippingDate','expedition','totalKoli','vendorKoliNo','poNumber','sku','qty','hpp/item'];
 const events={MINI_ERP:['RECEIVING','KOLI_INTAKE','PUTAWAY','SHIPPING'],MOKA:['RECEIPT_ITEM_COSTS','PUTAWAY','STOCK_ADJUSTMENT','RETURN_SELLABLE','TRANSFER_STOCK']};
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
-const configured=env=>({enabled:env.WMS_INTEGRATION_ENABLED==='true',miniErp:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.MINI_ERP_RESI_RPC),outbox:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.WMS_OUTBOX_RPC),moka:!!(env.MOKA_ACCESS_TOKEN&&env.MOKA_OUTLET_MAP)});
+const configured=env=>({enabled:env.WMS_INTEGRATION_ENABLED==='true',miniErp:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.MINI_ERP_RESI_RPC),masterSku:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.MINI_ERP_MASTER_SKU_RPC),outbox:!!(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY&&env.SUPABASE_SERVER_KEY&&env.WMS_OUTBOX_RPC),moka:!!(env.MOKA_ACCESS_TOKEN&&env.MOKA_OUTLET_MAP)});
 function outlets(env){let value;try{value=JSON.parse(env.MOKA_OUTLET_MAP||'{}')}catch{throw Error('Pemetaan outlet Moka di server tidak valid.')}
  if(!value||Array.isArray(value)||Object.values(value).some(v=>!/^\d+$/.test(String(v)))||new Set(Object.values(value).map(String)).size!==Object.keys(value).length)throw Error('Pemetaan outlet Moka harus unik dan berupa ID angka.');return value;}
 async function boundedJSON(response){const reader=response.body?.getReader();let size=0;const chunks=[];if(reader)while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>12*1024*1024){await reader.cancel();throw Error('Data terlalu besar. Persempit data pada konektor sumber.')}chunks.push(value)}const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}try{return JSON.parse(new TextDecoder().decode(bytes))}catch{throw Error('Respons sistem tujuan bukan JSON yang valid.')}}
@@ -33,6 +33,12 @@ export function createIntegrationGateway(fetcher=fetch){
     const data=await rpc(env,env.MINI_ERP_RESI_RPC,{p_limit:50000});
     if(!Array.isArray(data.rows)||!data.snapshotId||data.truncated!==false||data.totalRows!==data.rows.length||data.rows.length>50000)throw Error('Snapshot resi harus lengkap: rows, snapshotId, totalRows dan truncated=false. Tidak ada data diimpor.');
     return reply({snapshotId:String(data.snapshotId),rows:data.rows.map(r=>Object.fromEntries(columns.map(k=>[k,r[k]??'']))),fetchedAt:new Date().toISOString()});
+   }
+   if(path==='/api/integrations/master-sku'&&requestIn.method==='GET'){
+    if(!config.masterSku)return reply({error:'Koneksi Master SKU Mini ERP belum dikonfigurasi.'},503);
+    const data=await rpc(env,env.MINI_ERP_MASTER_SKU_RPC,{p_limit:50000});
+    if(!Array.isArray(data.rows)||!data.snapshotId||data.truncated!==false||data.totalRows!==data.rows.length||data.rows.length>50000)throw Error('Snapshot Master SKU harus lengkap: rows, snapshotId, totalRows dan truncated=false. Tidak ada data diterapkan.');
+    return reply({snapshotId:String(data.snapshotId),rows:data.rows.map(r=>({sku:r.sku??'',itemName:r.itemName??''})),fetchedAt:new Date().toISOString()});
    }
    if(path==='/api/integrations/moka-stock'&&requestIn.method==='GET'){
     if(!config.moka)return reply({error:'Token dan pemetaan outlet Moka belum dikonfigurasi.'},503);

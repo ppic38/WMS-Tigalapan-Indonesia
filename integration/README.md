@@ -32,6 +32,9 @@ SUPABASE_SERVER_KEY=token custom-role (BUKAN service_role Mini ERP) -- dikirim s
   apa pun -- lihat migration terkait di repo Mini ERP). Jangan masukkan ke frontend, ZIP, git,
   atau chat.
 MINI_ERP_RESI_RPC=nama RPC penghasil snapshot resi
+MINI_ERP_MASTER_SKU_RPC=nama RPC penghasil snapshot Master SKU (mis. wms_master_sku_snapshot,
+  migration 0043 Mini ERP) -- role Postgres yang sama (wms_integration_role) dipakai lagi, TIDAK
+  ada kredensial/role baru yang perlu dibuat.
 WMS_OUTBOX_RPC=wms_integration_event
 MOKA_ACCESS_TOKEN=token OAuth Moka di server
 MOKA_OUTLET_MAP={"DC":"<id-outlet-dc>","ST01":"<id-outlet-cabang>"}
@@ -49,6 +52,28 @@ Respons wajib berupa objek:
 ```
 
 RPC harus membaca data dalam satu snapshot konsisten. Kembalikan seluruh isi setiap resi, bukan halaman sebagian koli. Jika lebih dari batas, kembalikan truncated=true agar WMS menolak impor parsial. Hanya resi yang dirilis Mini ERP untuk penerimaan. Nilai kolom disesuaikan melalui RPC/view ke skema asli Mini ERP. SKU harus sudah ada di WMS. PO opsional, fallback ke nomor resi. Penarikan ulang tidak menggandakan kiriman. Resi lama yang isinya berubah ditahan untuk pemeriksaan; WMS tidak mengubah pemeriksaan/qty yang sudah berjalan.
+
+## Kontrak Master SKU Mini ERP (2026-09-18)
+
+RPC dipanggil POST /rest/v1/rpc/<MINI_ERP_MASTER_SKU_RPC> dengan {"p_limit":50000}. Respons wajib
+sama bentuknya dengan kontrak resi (snapshotId, totalRows, truncated, rows), isi tiap baris:
+
+```json
+{"snapshotId":"revision-from-mini-erp","totalRows":1,"truncated":false,"rows":[{"sku":"B01-097A3","itemName":"Kaos Polos 24S - Hitam"}]}
+```
+
+Dipakai lewat tombol "Ambil resi Mini ERP" (Integrasi & sinkronisasi) -- snapshot ini ditarik dan
+DITERAPKAN OTOMATIS ke Master SKU WMS lebih dulu (bukan preview manual seperti resi), supaya SKU
+yang dibutuhkan resi yang ditarik setelahnya sudah terdaftar. Juga tersedia tombol terpisah
+"Sinkronkan Master SKU" untuk dipakai kapan saja tanpa perlu menarik resi. SKU yang tidak sesuai
+format WMS (lihat SKU_RE, src/lib/data.js) atau tanpa nama item dilewati (masuk daftar "tidak
+valid" pada notifikasi, TIDAK didaftarkan) -- ini murni penambahan/pembaruan SKU (itemName), TIDAK
+pernah menghapus atau menonaktifkan SKU WMS yang sudah ada, dan TIDAK mengubah mapping lokasi
+gudang (ABC class/lokasi utama/reserve) SKU yang sudah dipetakan sebelumnya. Setiap penerapan
+tercatat sebagai entri baru di Master data > Impor & riwayat (type Master SKU, uploadedBy
+"MINI_ERP_SYNC") -- bisa di-rollback lewat mekanisme rollback impor yang sama seperti impor
+manual, dengan batasan yang sama (cuma impor TERAKHIR yang bisa di-rollback, dan ditolak kalau
+Master SKU sudah dipakai transaksi apa pun).
 
 ## Outbox dan status
 

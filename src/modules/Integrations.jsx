@@ -2,13 +2,32 @@ import React,{useEffect,useState} from 'react';
 import {Download,RefreshCw,ArrowRight} from 'lucide-react';
 import {PageHead,Panel,Button,Notice,Table,Select,Field,time} from '../ui.jsx';
 import {download} from '../lib/files.js';
-import {planResiImport,applyResiSnapshot,applyMokaStock,recordIntegrationReceipt} from '../lib/integration.js';
+import {planResiImport,applyResiSnapshot,applyMokaStock,recordIntegrationReceipt,applyMasterSkuSync} from '../lib/integration.js';
 const labels={WAITING_CONFIGURATION:'Menunggu konfigurasi',WAITING_REMOTE:'Diterima outbox · belum diterapkan',SYNCED:'Tersinkron',FAILED:'Gagal di tujuan',UNKNOWN:'Perlu cek status',SENDING:'Sedang dikirim'};
 export default function Integrations({s,act,notify,user}){
  const [config,setConfig]=useState(null),[busy,setBusy]=useState(false),[target,setTarget]=useState('ALL'),[resi,setResi]=useState(null),[stock,setStock]=useState(null),[storeId,setStore]=useState('');
  async function api(path,body){const r=await fetch('/api/integrations/'+path,{cache:'no-store',...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});if(r.status===401){location.assign('/login');throw Error('Sesi berakhir. Masuk kembali.')}const json=await r.json();if(!r.ok)throw Error(json.error||'Koneksi belum berhasil.');return json;}
  async function run(fn){setBusy(true);try{await fn()}catch(e){notify(e.message,'error')}finally{setBusy(false)}}
  useEffect(()=>{api('status').then(setConfig).catch(()=>{})},[]);
+ // Sinkronisasi Master SKU (owner 2026-09-18): "auto-terapkan + catatan" -- diterapkan langsung
+ // ke Master SKU WMS (bukan preview manual seperti resi), notifikasi hasilnya lewat toast + entri
+ // baru otomatis di Master data > Impor & riwayat (lihat applyMasterSkuSync, lib/integration.js).
+ async function pullMasterSku(){
+  if(!config?.masterSku)return null;
+  const snapshot=await api('master-sku');
+  let result;const ok=await act(d=>{result=applyMasterSkuSync(d,snapshot,user)});
+  if(!ok)throw Error('Gagal menerapkan Master SKU dari Mini ERP.');
+  return result;
+ }
+ function notifyMasterSku(result,whenEmpty){
+  if(!result)return;
+  const parts=[];
+  if(result.added.length)parts.push(`${result.added.length} SKU baru`);
+  if(result.updated.length)parts.push(`${result.updated.length} nama SKU diperbarui`);
+  if(result.invalid.length)parts.push(`${result.invalid.length} baris dilewati (SKU/nama tidak valid)`);
+  if(parts.length)notify('Master SKU disinkron dari Mini ERP: '+parts.join(', ')+'.');
+  else if(whenEmpty)notify('Tidak ada SKU baru/berubah dari Mini ERP.');
+ }
  const plan=resi?planResiImport(s,resi):null,rows=s.queue.filter(q=>target==='ALL'||q.target===target);
  async function send(q,action){
   let locked;const ok=await act(d=>{const current=d.queue.find(x=>x.id===q.id);if(!current||current.status==='SYNCED')throw Error('Event sudah selesai atau tidak ditemukan.');if(action==='submit'&&['SENDING','UNKNOWN','WAITING_REMOTE'].includes(current.status))throw Error('Periksa status tujuan sebelum mengirim ulang.');current.attempts=(current.attempts||0)+(action==='submit'?1:0);current.status=action==='submit'?'SENDING':current.status;locked=structuredClone(current)},action==='submit'?'Mengirim event dengan ID tetap':'Memeriksa tanda terima tujuan');if(!ok)return;
@@ -17,7 +36,7 @@ export default function Integrations({s,act,notify,user}){
  }
  return <><PageHead title="Integrasi & sinkronisasi" description="Mini ERP (Supabase) ↔ WMS ↔ API Moka POS"><Button variant="secondary" disabled={busy} icon={RefreshCw} onClick={()=>run(async()=>{setConfig(await api('status'));notify('Status konfigurasi server diperbarui')})}>Periksa konfigurasi</Button></PageHead>
  <Notice>{config?.enabled?'Konektor server diaktifkan. Status tersinkron hanya diberikan setelah ada bukti penerapan dari sistem tujuan.':'Koneksi langsung belum aktif. Akses Supabase, pemetaan resi, token Moka, dan pemetaan outlet perlu dilengkapi di server.'} Data stok fisik WMS masih tersimpan per browser.</Notice>
- <div className="integration-grid"><Panel title="Mini ERP → WMS" subtitle="Resi, vendor, jumlah koli, SKU dan Qty"><div className="form-pad"><p>{config?.miniErp?'Konfigurasi sumber tersedia; koneksi belum diuji sampai penarikan berhasil.':'Menunggu URL Supabase dan RPC sumber resi.'}</p><Button disabled={busy||!config?.enabled||!config?.miniErp} onClick={()=>run(async()=>{setResi(await api('resi'));notify('Snapshot resi diterima; periksa sebelum mengimpor')})}>Ambil resi Mini ERP</Button></div></Panel>
+ <div className="integration-grid"><Panel title="Mini ERP → WMS" subtitle="Resi, vendor, jumlah koli, SKU dan Qty"><div className="form-pad"><p>{config?.miniErp?'Konfigurasi sumber tersedia; koneksi belum diuji sampai penarikan berhasil.':'Menunggu URL Supabase dan RPC sumber resi.'}</p><div className="toolbar-actions"><Button disabled={busy||!config?.enabled||!config?.miniErp} onClick={()=>run(async()=>{const skuResult=await pullMasterSku().catch(e=>{notify(e.message,'error');return null});notifyMasterSku(skuResult,false);setResi(await api('resi'));notify('Snapshot resi diterima; periksa sebelum mengimpor')})}>Ambil resi Mini ERP</Button><Button variant="secondary" disabled={busy||!config?.enabled||!config?.masterSku} onClick={()=>run(async()=>{const result=await pullMasterSku();notifyMasterSku(result,true)})}>Sinkronkan Master SKU</Button></div><p className="muted">Master SKU disinkron otomatis dari Mini ERP setiap kali resi diambil (lihat "Ambil resi Mini ERP"), atau kapan saja lewat tombol di atas.</p></div></Panel>
  <Panel title="WMS → Mini ERP / Moka" subtitle="Antrean persisten dan tanda terima tujuan"><div className="form-pad"><p>{config?.outbox?'Konfigurasi outbox tersedia. Penerimaan outbox belum berarti stok Moka berubah.':'Menunggu RPC outbox idempoten pada Supabase.'}</p><p className="muted">Hasil penerimaan, Putaway, Shipping, koreksi dan retur dikirim sebagai event dengan ID tetap. Proses transfer Moka menunggu pemetaan dan verifikasi API.</p></div></Panel>
  <Panel title="Moka POS → WMS" subtitle="Stok cabang dan identitas SKU / outlet"><div className="form-pad"><p>{config?.moka?'Konfigurasi token tersedia; tarik data untuk memeriksa akses.':'Menunggu token API dan pemetaan outlet.'}</p><Field label="Cabang / outlet"><Select value={storeId} onChange={e=>{setStore(e.target.value);setStock(null)}}><option value="">Pilih cabang</option>{(config?.outlets||[]).map(o=><option key={o.storeId} value={o.storeId}>{s.stores.find(st=>st.storeId===o.storeId)?.storeName||o.storeId} · outlet {o.outletId}</option>)}</Select></Field><Button disabled={busy||!storeId||!config?.enabled||!config?.moka} onClick={()=>run(async()=>{setStock(await api('moka-stock?storeId='+encodeURIComponent(storeId)));notify('Stok Moka diterima untuk ditinjau')})}>Ambil stok Moka</Button></div></Panel></div>
  {plan&&<Panel title="Pratinjau resi Mini ERP" subtitle={`${plan.groups.length} resi baru · ${plan.rows.length} baris baru · ${plan.skipped} baris resi yang sudah ada`} action={<Button disabled={busy||!plan.rows.length||!!plan.errors.length} icon={ArrowRight} onClick={()=>run(async()=>{const ok=await act(d=>applyResiSnapshot(d,resi,user),'Resi Mini ERP siap diproses di Receiving');if(ok)setResi(null)})}>Impor resi ke Receiving</Button>}>
